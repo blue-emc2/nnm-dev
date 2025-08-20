@@ -6,6 +6,7 @@ use std::{
 use crate::app::{
     config::Config, entity::Entity, file::File, history::History, parser::Parser, prompt::Prompt,
     screen,
+    error::AppError,
 };
 use tokio::runtime::Runtime;
 
@@ -149,8 +150,8 @@ impl RssController {
         &mut self,
         bodys: Vec<String>,
         config: Config,
-    ) -> Result<(), quick_xml::Error> {
-        let parser = Parser::new();
+    ) -> Result<(), AppError> {
+        let parser = Parser::new()?;
         let chunk_size = config.chunk_size();
 
         for body in bodys {

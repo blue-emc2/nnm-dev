@@ -1,6 +1,7 @@
 pub mod config;
 pub mod controller;
 pub mod prompt;
+pub mod error;
 
 mod entity;
 mod file;

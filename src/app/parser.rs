@@ -1,4 +1,5 @@
 use crate::app::entity::{Atom, Entity, EntityType, Rdf, Rss};
+use crate::app::error::AppError;
 use quick_xml::{events::Event, name::QName, Reader};
 use regex::Regex;
 
@@ -7,13 +8,13 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new() -> Self {
-        Parser {
-            re: Regex::new(r"<[^>]*>").unwrap(),
-        }
+    pub fn new() -> Result<Self, AppError> {
+        Ok(Parser {
+            re: Regex::new(r"<[^>]*>")?,
+        })
     }
 
-    pub fn parse(&self, body: String) -> Result<Vec<Entity>, quick_xml::Error> {
+    pub fn parse(&self, body: String) -> Result<Vec<Entity>, AppError> {
         let mut buf = Vec::new();
         let decoded_body = html_escape::decode_html_entities(&body).to_string();
         let entity_type = self.get_rss_feed_type(&decoded_body);
@@ -65,8 +66,8 @@ impl Parser {
 
                 Ok(buf)
             }
-            _ => Err(quick_xml::Error::UnexpectedToken(
-                "なんかエラー".to_string(),
+            _ => Err(AppError::RegexError(
+                regex::Error::Syntax("Unsupported RSS feed type".to_string()),
             )),
         }
     }
@@ -117,8 +118,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_rdf() {
-        let parser = Parser::new();
+    fn test_parse_rdf() -> Result<(), AppError> {
+        let parser = Parser::new()?;
         let body = r#"
             <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
                 <channel rdf:about="https://b.hatena.ne.jp/entrylist/it">
@@ -155,11 +156,13 @@ mod tests {
         assert_eq!(result.get(1).unwrap().title, "Example title2");
         assert_eq!(result.get(1).unwrap().link, "https://example.com2");
         assert_eq!(result.get(1).unwrap().description, "Example description2");
+
+        Ok(())
     }
 
     #[test]
-    fn test_parse_rss() {
-        let parser = Parser::new();
+    fn test_parse_rss() -> Result<(), AppError> {
+        let parser = Parser::new()?;
         let body = r#"
             <rss version="2.0">
                 <channel>
@@ -193,11 +196,13 @@ mod tests {
         assert_eq!(result.get(1).unwrap().title, "Example title 2");
         assert_eq!(result.get(1).unwrap().link, "https://example2.com");
         assert_eq!(result.get(1).unwrap().description, "Example description 2");
+
+        Ok(())
     }
 
     #[test]
-    fn test_parse_atom() {
-        let parser = Parser::new();
+    fn test_parse_atom() -> Result<(), AppError> {
+        let parser = Parser::new()?;
         let body = r#"
             <feed xmlns="http://www.w3.org/2005/Atom">
                 <title>Example title</title>
@@ -229,11 +234,13 @@ mod tests {
         assert_eq!(result.get(1).unwrap().title, "Example title 2");
         assert_eq!(result.get(1).unwrap().link, "https://example2.com");
         assert_eq!(result.get(1).unwrap().description, "Example description 2");
+
+        Ok(())
     }
 
     #[test]
-    fn test_parse_atom_content_instead_of_summary() {
-        let parser = Parser::new();
+    fn test_parse_atom_content_instead_of_summary() -> Result<(), AppError> {
+        let parser = Parser::new()?;
         let body = r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <feed xmlns="http://www.w3.org/2005/Atom">
@@ -266,5 +273,7 @@ mod tests {
         assert_eq!(result.get(1).unwrap().title, "Example title 2");
         assert_eq!(result.get(1).unwrap().link, "https://example2.com");
         assert_eq!(result.get(1).unwrap().description, "Example description 2");
+
+        Ok(())
     }
 }
