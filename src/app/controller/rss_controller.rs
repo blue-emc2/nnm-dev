@@ -27,11 +27,19 @@ impl Prompt for RssController {
         // 本当はFileManager的な構造体を使うときれいかも？
         // let config = FileManager::load(config);
         // FileManager::save(config);
-        let mut config: Config = Config::new().load_from_file().unwrap();
+        let mut config: Config = match Config::new().load_from_file() {
+            Ok(c) => c,
+            Err(e) => { eprintln!("設定読み込みエラー: {}", e); return; }
+        };
         let links = config.mut_links();
-        let index = links.iter().position(|x| x == url).unwrap();
+        let index = match links.iter().position(|x| x == url) {
+            Some(i) => i,
+            None => { eprintln!("URLが見つかりません"); return; }
+        };
         links.remove(index);
-        config.save_to_file(config.clone()).unwrap();
+        if let Err(e) = config.save_to_file(config.clone()) {
+            eprintln!("設定保存エラー: {}", e);
+        }
     }
 }
 
