@@ -21,7 +21,7 @@ impl Parser {
 
         match entity_type {
             EntityType::Rss => {
-                let rss: Rss = quick_xml::de::from_str(&body).unwrap();
+                let rss: Rss = quick_xml::de::from_str(&body)?;
                 rss.channel.item.iter().for_each(|item| {
                     let mut entity = Entity::new(EntityType::Rss);
                     entity.set_fields(
@@ -36,7 +36,7 @@ impl Parser {
                 Ok(buf)
             }
             EntityType::Rdf => {
-                let rdf: Rdf = quick_xml::de::from_str(&body).unwrap();
+                let rdf: Rdf = quick_xml::de::from_str(&body)?;
                 rdf.item.iter().for_each(|item| {
                     let mut entity = Entity::new(EntityType::Rdf);
                     entity.set_fields(
@@ -51,7 +51,7 @@ impl Parser {
                 Ok(buf)
             }
             EntityType::Atom => {
-                let atom: Atom = quick_xml::de::from_str(&body).unwrap();
+                let atom: Atom = quick_xml::de::from_str(&body)?;
                 atom.entry.iter().for_each(|item| {
                     let mut entity = Entity::new(EntityType::Atom);
                     let description = item.summary.as_ref().or_else(|| item.content.as_ref());
