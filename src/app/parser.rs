@@ -17,7 +17,7 @@ impl Parser {
     pub fn parse(&self, body: String) -> Result<Vec<Entity>, AppError> {
         let mut buf = Vec::new();
         let decoded_body = html_escape::decode_html_entities(&body).to_string();
-        let entity_type = self.get_rss_feed_type(&decoded_body);
+        let entity_type = self.get_rss_feed_type(&decoded_body)?;
 
         match entity_type {
             EntityType::Rss => {
@@ -72,7 +72,7 @@ impl Parser {
         }
     }
 
-    fn get_rss_feed_type(&self, body: &str) -> EntityType {
+    fn get_rss_feed_type(&self, body: &str) -> Result<EntityType, AppError> {
         let mut reader = Reader::from_str(body);
         reader.trim_text(true);
 
@@ -80,17 +80,19 @@ impl Parser {
             match reader.read_event() {
                 Ok(Event::Start(ref e)) => {
                     if e.name() == QName(b"rss") {
-                        return EntityType::Rss;
+                        return Ok(EntityType::Rss);
                     } else if e.name() == QName(b"rdf:RDF") {
-                        return EntityType::Rdf;
+                        return Ok(EntityType::Rdf);
                     } else if e.name() == QName(b"feed") {
-                        return EntityType::Atom;
+                        return Ok(EntityType::Atom);
                     } else {
-                        return EntityType::Unknown;
+                        return Ok(EntityType::Unknown);
                     }
                 }
                 Ok(Event::Eof) => (),
-                Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
+                Err(e) => return Err(AppError::ParseError(
+                    format!("XML読み取りエラー (位置: {}): {:?}", reader.buffer_position(), e)
+                )),
                 _ => (),
             }
         }

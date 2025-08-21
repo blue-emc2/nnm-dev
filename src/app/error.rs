@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[derive(Error,Debug)]
+#[derive(Error, Debug)]
 pub enum AppError {
     #[error("正規表現エラー: {0}")]
     RegexError(#[from] regex::Error),
@@ -10,4 +10,7 @@ pub enum AppError {
 
     #[error("ファイル入出力エラー: {0}")]
     FileError(#[from] std::io::Error),
+
+    #[error("パースエラー: {0}")]
+    ParseError(String),
 }
