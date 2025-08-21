@@ -104,7 +104,7 @@ impl Parser {
         }
         let tmp = self
             .re
-            .replace_all(body.as_deref().unwrap(), "")
+            .replace_all(body.unwrap(), "")
             .to_string();
         let tmp = tmp
             .replace("\n", "")
