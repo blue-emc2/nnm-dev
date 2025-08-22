@@ -86,10 +86,10 @@ impl Parser {
                     } else if e.name() == QName(b"feed") {
                         return Ok(EntityType::Atom);
                     } else {
-                        return Ok(EntityType::Unknown);
+                        return Err(AppError::ParseError("不明なフィード形式です".to_string()));
                     }
                 }
-                Ok(Event::Eof) => (),
+                Ok(Event::Eof) => return Err(AppError::ParseError("有効なフィード形式が見つかりません".to_string())),
                 Err(e) => return Err(AppError::ParseError(
                     format!("XML読み取りエラー (位置: {}): {:?}", reader.buffer_position(), e)
                 )),
@@ -277,5 +277,47 @@ mod tests {
         assert_eq!(result.get(1).unwrap().description, "Example description 2");
 
         Ok(())
+    }
+
+    #[test]
+    fn test_parse_invalid_xml() -> Result<(), AppError> {
+        let parser = Parser::new()?;
+        let invalid_xml = "<rss><channel><item></rss>"; // 閉じタグ不正
+
+        let result = parser.parse(invalid_xml.to_string());
+
+        if let Err(AppError::XmlError(_)) = result {
+            Ok(())
+        } else {
+            panic!("Expected XmlError");
+        }
+    }
+
+    #[test]
+    fn test_parse_empty_string() -> Result<(), AppError> {
+        let parser = Parser::new()?;
+        let result = parser.parse("".to_string());
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_non_xml_content() -> Result<(), AppError> {
+        let parser = Parser::new()?;
+        let result = parser.parse("これはXMLではありません".to_string());
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_rss_feed_type_invalid_xml() -> Result<(), AppError> {
+        let parser = Parser::new()?;
+        let result = parser.get_rss_feed_type("<invalid>");
+
+        if let Err(AppError::ParseError(_)) = result {
+            Ok(())
+        } else {
+            panic!("Expected ParseError");
+        }
     }
 }
