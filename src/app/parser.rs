@@ -99,12 +99,10 @@ impl Parser {
     }
 
     fn clean_string(&self, body: Option<&String>) -> String {
-        if body.is_none() {
-            return "".to_string();
-        }
+        let text = body.map_or("", |s| s.as_str());
         let tmp = self
             .re
-            .replace_all(body.unwrap(), "")
+            .replace_all(text, "")
             .to_string();
         let tmp = tmp
             .replace("\n", "")
