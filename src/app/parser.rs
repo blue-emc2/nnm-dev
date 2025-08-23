@@ -66,8 +66,8 @@ impl Parser {
 
                 Ok(buf)
             }
-            _ => Err(AppError::RegexError(
-                regex::Error::Syntax("Unsupported RSS feed type".to_string()),
+            _ => Err(AppError::ParseError(
+                "サポートされていないRSSフィード形式です".to_string()
             )),
         }
     }
