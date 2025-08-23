@@ -1,4 +1,5 @@
 use crate::app::entity::{Atom, Entity, EntityType, Rdf, Rss};
+use crate::app::error::AppError;
 use quick_xml::{events::Event, name::QName, Reader};
 use regex::Regex;
 
@@ -7,20 +8,20 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new() -> Self {
-        Parser {
-            re: Regex::new(r"<[^>]*>").unwrap(),
-        }
+    pub fn new() -> Result<Self, AppError> {
+        Ok(Parser {
+            re: Regex::new(r"<[^>]*>")?,
+        })
     }
 
-    pub fn parse(&self, body: String) -> Result<Vec<Entity>, quick_xml::Error> {
+    pub fn parse(&self, body: String) -> Result<Vec<Entity>, AppError> {
         let mut buf = Vec::new();
         let decoded_body = html_escape::decode_html_entities(&body).to_string();
-        let entity_type = self.get_rss_feed_type(&decoded_body);
+        let entity_type = self.get_rss_feed_type(&decoded_body)?;
 
         match entity_type {
             EntityType::Rss => {
-                let rss: Rss = quick_xml::de::from_str(&body).unwrap();
+                let rss: Rss = quick_xml::de::from_str(&body)?;
                 rss.channel.item.iter().for_each(|item| {
                     let mut entity = Entity::new(EntityType::Rss);
                     entity.set_fields(
@@ -35,7 +36,7 @@ impl Parser {
                 Ok(buf)
             }
             EntityType::Rdf => {
-                let rdf: Rdf = quick_xml::de::from_str(&body).unwrap();
+                let rdf: Rdf = quick_xml::de::from_str(&body)?;
                 rdf.item.iter().for_each(|item| {
                     let mut entity = Entity::new(EntityType::Rdf);
                     entity.set_fields(
@@ -50,7 +51,7 @@ impl Parser {
                 Ok(buf)
             }
             EntityType::Atom => {
-                let atom: Atom = quick_xml::de::from_str(&body).unwrap();
+                let atom: Atom = quick_xml::de::from_str(&body)?;
                 atom.entry.iter().for_each(|item| {
                     let mut entity = Entity::new(EntityType::Atom);
                     let description = item.summary.as_ref().or_else(|| item.content.as_ref());
@@ -65,13 +66,13 @@ impl Parser {
 
                 Ok(buf)
             }
-            _ => Err(quick_xml::Error::UnexpectedToken(
-                "なんかエラー".to_string(),
+            _ => Err(AppError::ParseError(
+                "サポートされていないRSSフィード形式です".to_string()
             )),
         }
     }
 
-    fn get_rss_feed_type(&self, body: &str) -> EntityType {
+    fn get_rss_feed_type(&self, body: &str) -> Result<EntityType, AppError> {
         let mut reader = Reader::from_str(body);
         reader.trim_text(true);
 
@@ -79,29 +80,29 @@ impl Parser {
             match reader.read_event() {
                 Ok(Event::Start(ref e)) => {
                     if e.name() == QName(b"rss") {
-                        return EntityType::Rss;
+                        return Ok(EntityType::Rss);
                     } else if e.name() == QName(b"rdf:RDF") {
-                        return EntityType::Rdf;
+                        return Ok(EntityType::Rdf);
                     } else if e.name() == QName(b"feed") {
-                        return EntityType::Atom;
+                        return Ok(EntityType::Atom);
                     } else {
-                        return EntityType::Unknown;
+                        return Err(AppError::ParseError("不明なフィード形式です".to_string()));
                     }
                 }
-                Ok(Event::Eof) => (),
-                Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
+                Ok(Event::Eof) => return Err(AppError::ParseError("有効なフィード形式が見つかりません".to_string())),
+                Err(e) => return Err(AppError::ParseError(
+                    format!("XML読み取りエラー (位置: {}): {:?}", reader.buffer_position(), e)
+                )),
                 _ => (),
             }
         }
     }
 
     fn clean_string(&self, body: Option<&String>) -> String {
-        if body.is_none() {
-            return "".to_string();
-        }
+        let text = body.map_or("", |s| s.as_str());
         let tmp = self
             .re
-            .replace_all(body.as_deref().unwrap(), "")
+            .replace_all(text, "")
             .to_string();
         let tmp = tmp
             .replace("\n", "")
@@ -117,8 +118,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_rdf() {
-        let parser = Parser::new();
+    fn test_parse_rdf() -> Result<(), AppError> {
+        let parser = Parser::new()?;
         let body = r#"
             <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
                 <channel rdf:about="https://b.hatena.ne.jp/entrylist/it">
@@ -155,11 +156,13 @@ mod tests {
         assert_eq!(result.get(1).unwrap().title, "Example title2");
         assert_eq!(result.get(1).unwrap().link, "https://example.com2");
         assert_eq!(result.get(1).unwrap().description, "Example description2");
+
+        Ok(())
     }
 
     #[test]
-    fn test_parse_rss() {
-        let parser = Parser::new();
+    fn test_parse_rss() -> Result<(), AppError> {
+        let parser = Parser::new()?;
         let body = r#"
             <rss version="2.0">
                 <channel>
@@ -193,11 +196,13 @@ mod tests {
         assert_eq!(result.get(1).unwrap().title, "Example title 2");
         assert_eq!(result.get(1).unwrap().link, "https://example2.com");
         assert_eq!(result.get(1).unwrap().description, "Example description 2");
+
+        Ok(())
     }
 
     #[test]
-    fn test_parse_atom() {
-        let parser = Parser::new();
+    fn test_parse_atom() -> Result<(), AppError> {
+        let parser = Parser::new()?;
         let body = r#"
             <feed xmlns="http://www.w3.org/2005/Atom">
                 <title>Example title</title>
@@ -229,11 +234,13 @@ mod tests {
         assert_eq!(result.get(1).unwrap().title, "Example title 2");
         assert_eq!(result.get(1).unwrap().link, "https://example2.com");
         assert_eq!(result.get(1).unwrap().description, "Example description 2");
+
+        Ok(())
     }
 
     #[test]
-    fn test_parse_atom_content_instead_of_summary() {
-        let parser = Parser::new();
+    fn test_parse_atom_content_instead_of_summary() -> Result<(), AppError> {
+        let parser = Parser::new()?;
         let body = r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <feed xmlns="http://www.w3.org/2005/Atom">
@@ -266,5 +273,49 @@ mod tests {
         assert_eq!(result.get(1).unwrap().title, "Example title 2");
         assert_eq!(result.get(1).unwrap().link, "https://example2.com");
         assert_eq!(result.get(1).unwrap().description, "Example description 2");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_invalid_xml() -> Result<(), AppError> {
+        let parser = Parser::new()?;
+        let invalid_xml = "<rss><channel><item></rss>"; // 閉じタグ不正
+
+        let result = parser.parse(invalid_xml.to_string());
+
+        if let Err(AppError::XmlError(_)) = result {
+            Ok(())
+        } else {
+            panic!("Expected XmlError");
+        }
+    }
+
+    #[test]
+    fn test_parse_empty_string() -> Result<(), AppError> {
+        let parser = Parser::new()?;
+        let result = parser.parse("".to_string());
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_non_xml_content() -> Result<(), AppError> {
+        let parser = Parser::new()?;
+        let result = parser.parse("これはXMLではありません".to_string());
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_rss_feed_type_invalid_xml() -> Result<(), AppError> {
+        let parser = Parser::new()?;
+        let result = parser.get_rss_feed_type("<invalid>");
+
+        if let Err(AppError::ParseError(_)) = result {
+            Ok(())
+        } else {
+            panic!("Expected ParseError");
+        }
     }
 }
