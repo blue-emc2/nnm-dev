@@ -27,6 +27,11 @@ impl History {
         }
     }
 
+    pub fn save(&self) -> Result<(), std::io::Error> {
+        self.save_to_file(self)?;
+        Ok(())
+    }
+
     pub fn update_last_fetched_date(&mut self) {
         let now = Local::now();
         self.last_fetched_date = now.format("%Y-%m-%d %H:%M:%S").to_string();

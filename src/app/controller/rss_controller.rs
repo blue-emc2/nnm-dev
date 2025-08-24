@@ -27,7 +27,7 @@ impl Prompt for RssController {
         // 本当はFileManager的な構造体を使うときれいかも？
         // let config = FileManager::load(config);
         // FileManager::save(config);
-        let mut config: Config = match Config::new().load_from_file() {
+        let mut config = match Config::load() {
             Ok(c) => c,
             Err(e) => { eprintln!("設定読み込みエラー: {}", e); return; }
         };
@@ -37,33 +37,34 @@ impl Prompt for RssController {
             None => { eprintln!("URLが見つかりません"); return; }
         };
         links.remove(index);
-        if let Err(e) = config.save_to_file(config.clone()) {
-            eprintln!("設定保存エラー: {}", e);
+        match config.save() {
+            Ok(_) => (),
+            Err(e) => eprintln!("設定保存エラー: {}", e),
         }
     }
 }
 
 impl RssController {
     pub fn add_link(&self, url: &str) -> Result<String, io::Error> {
-        let mut config: Config = Config::new().load_from_file()?;
+        let mut config = Config::load()?;
         let links = config.links();
         if links.contains(&url.to_string()) {
             return Ok(url.to_string());
         }
         let links = config.mut_links();
         links.push(url.to_string());
-        config.save_to_file(config.clone())?;
+        config.save()?;
         Ok(url.to_string())
     }
 
     pub fn delete_link(&self) -> Result<(), io::Error> {
-        let mut config: Config = Config::new().load_from_file()?;
+        let mut config = Config::load()?;
         self.delete_prompt(config.mut_links());
         Ok(())
     }
 
     pub fn show(&self) -> Result<(), io::Error> {
-        let config: Config = Config::new().load_from_file()?;
+        let config = Config::load()?;
         for link in config.links() {
             println!("{}", link);
         }
@@ -71,7 +72,7 @@ impl RssController {
     }
 
     pub fn index(&mut self, options: HashMap<String, String>) {
-        let config: Config = match Config::new().load_from_file() {
+        let config = match Config::load() {
             Ok(config) => config,
             Err(e) if e.kind() == ErrorKind::NotFound => {
                 eprintln!(
@@ -199,14 +200,14 @@ impl RssController {
                 }
 
                 history.update_last_fetched_date();
-                history.save_to_file(history.clone())?;
+                history.save()?;
 
                 Ok(())
             }
             Err(e) => {
                 eprintln!("履歴ファイルが見つかりませんでした。\nhistory.jsonを再作成します。");
                 let history = History::new();
-                history.save_to_file(history.clone())?;
+                history.save()?;
                 Err(e)
             }
         }

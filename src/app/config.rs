@@ -40,6 +40,16 @@ impl Config {
         }
     }
 
+    pub fn save(&self) -> Result<(), std::io::Error> {
+        self.save_to_file(self)?;
+        Ok(())
+    }
+
+    pub fn load() -> Result<Self, std::io::Error> {
+        let config = Config::new();
+        config.load_from_file()
+    }
+
     pub fn links(&self) -> &Vec<String> {
         self.links.as_ref()
     }
