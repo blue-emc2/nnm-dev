@@ -37,8 +37,9 @@ impl Prompt for RssController {
             None => { eprintln!("URLが見つかりません"); return; }
         };
         links.remove(index);
-        if let Err(e) = config.save_to_file(config.clone()) {
-            eprintln!("設定保存エラー: {}", e);
+        match config.save() {
+            Ok(_) => (),
+            Err(e) => eprintln!("設定保存エラー: {}", e),
         }
     }
 }
@@ -52,7 +53,7 @@ impl RssController {
         }
         let links = config.mut_links();
         links.push(url.to_string());
-        config.save_to_file(config.clone())?;
+        config.save()?;
         Ok(url.to_string())
     }
 
@@ -199,14 +200,14 @@ impl RssController {
                 }
 
                 history.update_last_fetched_date();
-                history.save_to_file(history.clone())?;
+                history.save()?;
 
                 Ok(())
             }
             Err(e) => {
                 eprintln!("履歴ファイルが見つかりませんでした。\nhistory.jsonを再作成します。");
                 let history = History::new();
-                history.save_to_file(history.clone())?;
+                history.save()?;
                 Err(e)
             }
         }

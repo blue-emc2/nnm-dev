@@ -40,6 +40,11 @@ impl Config {
         }
     }
 
+    pub fn save(&self) -> Result<(), std::io::Error> {
+        self.save_to_file(self)?;
+        Ok(())
+    }
+
     pub fn links(&self) -> &Vec<String> {
         self.links.as_ref()
     }

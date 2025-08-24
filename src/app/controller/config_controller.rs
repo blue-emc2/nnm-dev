@@ -2,7 +2,6 @@ use std::{env, path::PathBuf};
 
 use crate::app::{
     config::{Config, ConfigMessage},
-    file::File,
     history::History,
 };
 
@@ -23,10 +22,10 @@ impl ConfigController {
             return Ok(ConfigMessage::ExistsConfig);
         }
         let config = Config::new();
-        config.save_to_file(config.clone())?;
+        config.save()?;
 
         let history = History::new();
-        history.save_to_file(history.clone())?;
+        history.save()?;
 
         Ok(ConfigMessage::Success(
             config_file_path.into_os_string().into_string().unwrap(),

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 pub trait File {
     fn file_path(&self) -> PathBuf;
 
-    fn save_to_file<T: Serialize>(&self, content: T) -> io::Result<()> {
+    fn save_to_file<T: Serialize>(&self, content: T) -> Result<(), std::io::Error> {
         let path = self.file_path();
         let config_json = serde_json::to_string_pretty(&content)?;
         let mut file = std::fs::File::create(path)?;
