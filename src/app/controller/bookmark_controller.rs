@@ -6,7 +6,7 @@ pub struct BookmarkController;
 
 impl Prompt for BookmarkController {
     fn exec_delete_link(&self, url: &str) {
-        let mut config: Config = match Config::new().load_from_file() {
+        let mut config = match Config::load() {
                 Ok(c) => c,
                 Err(e) => { eprintln!("設定読み込みエラー: {}", e); return; }
             };
@@ -25,7 +25,7 @@ impl Prompt for BookmarkController {
 
 impl BookmarkController {
     pub fn add_link(&self, url: &str) -> Result<String, io::Error> {
-        let mut config: Config = Config::new().load_from_file()?;
+        let mut config = Config::load()?;
         let bookmarks = config.bookmarks();
 
         if bookmarks.contains(&url.to_string()) {
@@ -38,13 +38,13 @@ impl BookmarkController {
     }
 
     pub fn delete_link(&self) -> Result<(), io::Error> {
-        let mut config: Config = Config::new().load_from_file()?;
+        let mut config = Config::load()?;
         self.delete_prompt(config.mut_bookmarks());
         Ok(())
     }
 
     pub fn show(&self) -> Result<(), io::Error> {
-        let config: Config = Config::new().load_from_file()?;
+        let config = Config::load()?;
         for link in config.bookmarks() {
             println!("{}", link);
         }

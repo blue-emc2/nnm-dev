@@ -45,6 +45,11 @@ impl Config {
         Ok(())
     }
 
+    pub fn load() -> Result<Self, std::io::Error> {
+        let config = Config::new();
+        config.load_from_file()
+    }
+
     pub fn links(&self) -> &Vec<String> {
         self.links.as_ref()
     }
