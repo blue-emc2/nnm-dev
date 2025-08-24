@@ -12,10 +12,10 @@ pub struct History {
 
 impl File for History {
     fn file_path(&self) -> PathBuf {
-        let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-        let mut config_dir = PathBuf::from(home_dir);
-        config_dir.push(".config/nnm/history.json");
-        config_dir
+        dirs::config_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("nnm")
+            .join("history.json")
     }
 }
 
