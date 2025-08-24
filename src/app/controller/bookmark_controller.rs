@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::app::{config::Config, file::File, prompt::Prompt};
+use crate::app::{config::Config, prompt::Prompt};
 
 pub struct BookmarkController;
 
