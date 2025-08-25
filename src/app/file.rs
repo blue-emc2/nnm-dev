@@ -11,6 +11,12 @@ pub trait File {
 
     fn save_to_file<T: Serialize>(&self, content: T) -> Result<(), std::io::Error> {
         let path = self.file_path();
+        
+        // ディレクトリが存在しない場合は作成
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        
         let config_json = serde_json::to_string_pretty(&content)?;
         let mut file = std::fs::File::create(path)?;
         write!(file, "{}", config_json)?;

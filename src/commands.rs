@@ -2,7 +2,7 @@ use clap::Subcommand;
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// 設定ファイルを作成します。/home/{user}/.config/nnm/config.json
+    /// 設定ファイルを作成します。
     Init,
     /// RSSの追加、削除を行います。
     Rss {
