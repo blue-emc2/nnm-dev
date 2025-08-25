@@ -70,7 +70,7 @@ impl Config {
         self.chunk_size
     }
 
-    // 今はhome下にしか作れない
+    // クロスプラットフォーム対応のconfig配置
     pub fn default_file_path(&self) -> PathBuf {
         self.file_path()
     }
