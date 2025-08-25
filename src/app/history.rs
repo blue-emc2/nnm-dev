@@ -33,8 +33,7 @@ impl History {
     }
 
     pub fn load() -> Result<Self, std::io::Error> {
-        let history = History::new();
-        history.load_from_file()
+        History::new().load_from_file()
     }
 
     pub fn update_last_fetched_date(&mut self) {
