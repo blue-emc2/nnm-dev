@@ -32,6 +32,11 @@ impl History {
         Ok(())
     }
 
+    pub fn load() -> Result<Self, std::io::Error> {
+        let history = History::new();
+        history.load_from_file()
+    }
+
     pub fn update_last_fetched_date(&mut self) {
         let now = Local::now();
         self.last_fetched_date = now.format("%Y-%m-%d %H:%M:%S").to_string();

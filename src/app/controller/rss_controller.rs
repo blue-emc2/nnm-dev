@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::app::{
-    config::Config, entity::Entity, file::File, history::History, parser::Parser, prompt::Prompt,
+    config::Config, entity::Entity, history::History, parser::Parser, prompt::Prompt,
     screen,
     error::AppError,
 };
@@ -184,7 +184,7 @@ impl RssController {
     }
 
     fn save_history(&self) -> Result<(), std::io::Error> {
-        let history: Result<History, io::Error> = History::new().load_from_file();
+        let history = History::load();
 
         match history {
             Ok(mut history) => {
@@ -214,7 +214,7 @@ impl RssController {
     }
 
     fn filter_new_entities(&mut self) -> u16 {
-        let history: Result<History, io::Error> = History::new().load_from_file();
+        let history = History::load();
         match history {
             Ok(history) => {
                 let mut new_entities: Vec<Entity> = Vec::new();
