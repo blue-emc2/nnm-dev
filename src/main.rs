@@ -1,12 +1,17 @@
 mod app;
 mod commands;
+mod layers;
+mod models;
 
 use std::collections::HashMap;
 
-use app::config::ConfigMessage;
-use app::App;
 use clap::Parser;
 use commands::{Actions, Commands};
+use layers::presentation::cli::handlers::{
+    config_handler::ConfigHandler,
+    bookmark_handler::BookmarkHandler,
+    rss_handler::RssHandler,
+};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -20,87 +25,38 @@ struct Cli {
     number: i32,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let cli = Cli::parse();
-    let mut app: App = App::new();
     let number = cli.number;
     let mut options = HashMap::new();
     options.insert("head".to_string(), number.to_string());
 
-    match &cli.command {
-        Some(Commands::Init) => match app.config.create() {
-            Ok(ConfigMessage::Success(path)) => {
-                println!("設定ファイルを作成しました。{}", path);
-                println!("nnm rss add \"{{url}}\" でRSSのURLを追加しましょう。");
-            }
-            Ok(ConfigMessage::ExistsConfig) => {
-                println!("設定ファイルはすでに存在します。");
-            }
-            Err(e) => {
-                println!("Error: {:#?}", e);
-            }
-        },
-        Some(Commands::Rss { action }) => match action {
-            Some(Actions::Add { url }) => {
-                if let Some(url) = url {
-                    match app.rss.add_link(url) {
-                        Ok(url) => {
-                            println!("{} を追加しました", url);
-                        }
-                        Err(e) => {
-                            println!("追加に失敗しました {:#?}", e);
-                        }
-                    }
-                }
-            }
-            Some(Actions::Delete) => match app.rss.delete_link() {
-                Ok(()) => {
-                    println!("URLを削除しました");
-                }
-                Err(e) => {
-                    println!("削除に失敗しました: {:?}", e);
-                }
-            },
-            None => match app.rss.show() {
-                Ok(()) => {}
-                Err(e) => {
-                    println!("Error: {:#?}", e);
-                }
-            },
-        },
-        Some(Commands::Bookmark { action }) => match action {
-            Some(Actions::Add { url }) => {
-                if let Some(url) = url {
-                    match app.bookmark.add_link(url) {
-                        Ok(url) => {
-                            println!("{} を追加しました", url);
-                        }
-                        Err(e) => {
-                            println!("追加に失敗しました {:#?}", e);
-                        }
-                    }
-                }
-            }
-            Some(Actions::Delete) => match app.bookmark.delete_link() {
-                Ok(()) => {
-                    println!("URLを削除しました");
-                }
-                Err(e) => {
-                    println!("削除に失敗しました: {:?}", e);
-                }
-            },
-            None => match app.bookmark.show() {
-                Ok(()) => {}
-                Err(e) => {
-                    println!("Error: {:#?}", e);
-                }
-            },
-        },
+    let config_handler = ConfigHandler::new();
+    let bookmark_handler = BookmarkHandler::new();
+    let rss_handler = RssHandler::new();
+
+    let result = match &cli.command {
+        Some(Commands::Init) => {
+            config_handler.handle_init()
+        }
+        Some(Commands::Rss { action }) => {
+            rss_handler.handle_rss_command(action.clone(), options).await
+        }
+        Some(Commands::Bookmark { action }) => {
+            bookmark_handler.handle_bookmark_command(action.clone())
+        }
         Some(Commands::History) => {
-            app.history.show();
+            // TODO: History handler implementation
+            println!("History機能は未実装です");
+            Ok(())
         }
         None => {
-            app.fetch_articles(options);
+            rss_handler.handle_rss_command(None, options).await
         }
+    };
+
+    if let Err(e) = result {
+        eprintln!("Error: {:#?}", e);
     }
 }
