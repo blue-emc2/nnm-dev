@@ -2,9 +2,10 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use super::file::File;
+use crate::app::file::File;
 
 const DEFAULT_DISPLAY_LIMIT: i32 = 10;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     display_limit: i32,
