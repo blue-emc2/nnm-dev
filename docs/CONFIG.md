@@ -11,6 +11,6 @@
       "https://exsample2.rss",
       ...
     ],
-  "history_expiaration": 90    // 履歴の保存期間(実装中)
+  "history_expiration": 90    // 履歴の保存期間(実装中)
 }
 ```
