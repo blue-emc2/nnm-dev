@@ -10,8 +10,8 @@ const DEFAULT_DISPLAY_LIMIT: i32 = 10;
 pub struct Config {
     display_limit: i32,
     chunk_size: i32,
-    bookmarks: Vec<String>,   // お気に入り一覧
-    links: Vec<String>,       // rssのリンク一覧
+    bookmarks: Vec<String>,  // お気に入り一覧
+    links: Vec<String>,      // rssのリンク一覧
     history_expiration: i32, // 履歴の保持期間(日)
 }
 
@@ -30,6 +30,7 @@ impl File for Config {
     }
 }
 
+#[allow(dead_code)]
 impl Config {
     pub fn new() -> Self {
         Config {

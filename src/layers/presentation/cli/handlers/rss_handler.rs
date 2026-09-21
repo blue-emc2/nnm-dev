@@ -66,12 +66,4 @@ impl RssHandler {
         }
         Ok(())
     }
-
-    pub fn handle_rss_show(&self) -> Result<(), AppError> {
-        let feeds = self.rss_business.list_feeds()?;
-        for feed in feeds {
-            println!("{}", feed);
-        }
-        Ok(())
-    }
 }

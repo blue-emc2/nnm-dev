@@ -6,7 +6,7 @@ mod models;
 use std::collections::HashMap;
 
 use clap::Parser;
-use commands::{Actions, Commands};
+use commands::Commands;
 use layers::presentation::cli::handlers::{
     bookmark_handler::BookmarkHandler, config_handler::ConfigHandler, rss_handler::RssHandler,
 };

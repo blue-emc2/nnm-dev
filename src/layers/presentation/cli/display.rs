@@ -1,7 +1,7 @@
 // Display and output modules
-use crate::models::article::Article;
 use crate::app::table::row::Row;
 use crate::app::table::table::Table;
+use crate::models::article::Article;
 use std::collections::HashMap;
 
 pub struct Display;
@@ -30,9 +30,5 @@ impl Display {
         }
 
         println!("{}", table);
-    }
-
-    pub fn display_message(&self, message: &str) {
-        println!("{}", message);
     }
 }
