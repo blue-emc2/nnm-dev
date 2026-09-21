@@ -1,9 +1,10 @@
 // RSS business logic
+use crate::app::parser::Parser;
 use crate::layers::data::repositories::config_repository::ConfigRepository;
 use crate::layers::data::repositories::history_repository::HistoryRepository;
 use crate::models::article::Article;
 use crate::models::errors::AppError;
-use crate::app::parser::Parser;
+use std::thread;
 
 pub struct RssBusinessLayer {
     config_repo: ConfigRepository,
@@ -55,44 +56,36 @@ impl RssBusinessLayer {
     }
 
     /// RSSフィードを取得して記事を返す
-    pub async fn fetch_articles(&self) -> Result<Vec<Article>, AppError> {
+    pub fn fetch_articles(&self) -> Result<Vec<Article>, AppError> {
         let config = self.config_repo.load()?;
         let links = config.links().clone();
         let chunk_size = config.chunk_size();
 
-        // 並行でRSSを取得
-        let tasks = links.into_iter().map(|link| {
-            tokio::spawn(async move {
+        let mut handles = vec![];
+        for link in links {
+            let handle = thread::spawn(move || {
                 #[cfg(debug_assertions)]
                 {
-                    println!(
-                        "- start fetch task {} : {:?}",
-                        link,
-                        std::thread::current().id()
-                    );
+                    println!("- start fetch task {} : {:?}", link, thread::current().id());
                 }
-                let res = Self::fetch_rss(link.clone()).await;
+                let body = Self::fetch_rss(link.clone());
                 #[cfg(debug_assertions)]
                 {
-                    println!(
-                        "- end fetch task {} : {:?}",
-                        link,
-                        std::thread::current().id()
-                    );
+                    println!("- end fetch task {} : {:?}", link, thread::current().id());
                 }
-                res
-            })
-        });
+                body
+            });
+            handles.push(handle);
+        }
 
-        let results = futures::future::join_all(tasks).await;
-        let fetched_data: Vec<String> = results
+        let results = handles
             .into_iter()
-            .filter_map(|res| res.ok())
-            .filter_map(|res| res.ok())
-            .collect();
+            .filter_map(|handle| handle.join().ok())
+            .filter_map(|body| body.ok())
+            .collect::<Vec<_>>();
 
         // XMLをパース
-        let mut entities = self.parse_xml(fetched_data, chunk_size)?;
+        let mut entities = self.parse_xml(results, chunk_size)?;
 
         // 新しい記事のみをフィルタリング
         self.filter_new_entities(&mut entities)?;
@@ -105,9 +98,9 @@ impl RssBusinessLayer {
         Ok(entities)
     }
 
-    async fn fetch_rss(url: String) -> Result<String, reqwest::Error> {
-        let response = reqwest::get(&url).await?;
-        let body = response.text().await?;
+    fn fetch_rss(url: String) -> Result<String, reqwest::Error> {
+        let response = reqwest::blocking::get(&url)?;
+        let body = response.text()?;
         Ok(body)
     }
 
@@ -122,8 +115,8 @@ impl RssBusinessLayer {
                 .into_iter()
                 .take(chunk_size.try_into().unwrap())
                 .map(|entity| {
-                    use crate::models::article::EntityType as ArticleEntityType;
                     use crate::app::entity::EntityType as AppEntityType;
+                    use crate::models::article::EntityType as ArticleEntityType;
 
                     let article_type = match entity.entity_type {
                         AppEntityType::Rdf => ArticleEntityType::Rdf,
@@ -151,9 +144,7 @@ impl RssBusinessLayer {
         let history = self.history_repo.load()?;
         let history_entities = history.get_entities();
 
-        entities.retain(|entity| {
-            !history_entities.iter().any(|h| h.link == entity.link)
-        });
+        entities.retain(|entity| !history_entities.iter().any(|h| h.link == entity.link));
 
         Ok(())
     }

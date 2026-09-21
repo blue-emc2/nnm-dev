@@ -1,7 +1,7 @@
+use crate::app::prompt::Prompt;
+use crate::commands::Actions;
 use crate::layers::business::rss::RssBusinessLayer;
 use crate::models::errors::AppError;
-use crate::commands::Actions;
-use crate::app::prompt::Prompt;
 use std::collections::HashMap;
 use std::io::ErrorKind;
 
@@ -25,7 +25,7 @@ impl RssHandler {
         }
     }
 
-    pub async fn handle_rss_command(
+    pub fn handle_rss_command(
         &self,
         action: Option<Actions>,
         options: HashMap<String, String>,
@@ -44,7 +44,7 @@ impl RssHandler {
             }
             None => {
                 // 記事の取得と表示
-                match self.rss_business.fetch_articles().await {
+                match self.rss_business.fetch_articles() {
                     Ok(articles) => {
                         if articles.is_empty() {
                             println!("新しい記事はありません。");

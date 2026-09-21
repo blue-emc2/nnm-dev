@@ -8,9 +8,7 @@ use std::collections::HashMap;
 use clap::Parser;
 use commands::{Actions, Commands};
 use layers::presentation::cli::handlers::{
-    config_handler::ConfigHandler,
-    bookmark_handler::BookmarkHandler,
-    rss_handler::RssHandler,
+    bookmark_handler::BookmarkHandler, config_handler::ConfigHandler, rss_handler::RssHandler,
 };
 
 #[derive(Parser, Debug)]
@@ -25,8 +23,7 @@ struct Cli {
     number: i32,
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let cli = Cli::parse();
     let number = cli.number;
     let mut options = HashMap::new();
@@ -37,12 +34,8 @@ async fn main() {
     let rss_handler = RssHandler::new();
 
     let result = match &cli.command {
-        Some(Commands::Init) => {
-            config_handler.handle_init()
-        }
-        Some(Commands::Rss { action }) => {
-            rss_handler.handle_rss_command(action.clone(), options).await
-        }
+        Some(Commands::Init) => config_handler.handle_init(),
+        Some(Commands::Rss { action }) => rss_handler.handle_rss_command(action.clone(), options),
         Some(Commands::Bookmark { action }) => {
             bookmark_handler.handle_bookmark_command(action.clone())
         }
@@ -51,9 +44,7 @@ async fn main() {
             println!("History機能は未実装です");
             Ok(())
         }
-        None => {
-            rss_handler.handle_rss_command(None, options).await
-        }
+        None => rss_handler.handle_rss_command(None, options),
     };
 
     if let Err(e) = result {
