@@ -1,3 +1,4 @@
+use crate::app::file::app_config_dir;
 use crate::app::file::File;
 use crate::models::article::Article;
 use chrono::Local;
@@ -12,16 +13,7 @@ pub struct History {
 
 impl File for History {
     fn file_path(&self) -> PathBuf {
-        // XDG_CONFIG_HOMEが設定されていれば、そこが設定パス
-        // 未設定の場合は、~/.configが変える
-        let root_config_path = match std::env::var("XDG_CONFIG_HOME") {
-            Ok(val) => Some(PathBuf::from(val)),
-            Err(_) => std::env::home_dir().map(|home| home.join(".config")),
-        };
-        root_config_path
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("nnm")
-            .join("history.json")
+        app_config_dir().join("history.json")
     }
 }
 
