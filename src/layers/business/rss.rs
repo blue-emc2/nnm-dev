@@ -68,7 +68,7 @@ impl RssBusinessLayer {
                 {
                     println!("- start fetch task {} : {:?}", link, thread::current().id());
                 }
-                let body = Self::fetch_rss(link.clone());
+                let body = Self::fetch_rss(&link);
                 #[cfg(debug_assertions)]
                 {
                     println!("- end fetch task {} : {:?}", link, thread::current().id());
@@ -98,8 +98,8 @@ impl RssBusinessLayer {
         Ok(entities)
     }
 
-    fn fetch_rss(url: String) -> Result<String, reqwest::Error> {
-        let response = reqwest::blocking::get(&url)?;
+    fn fetch_rss(url: &str) -> Result<String, reqwest::Error> {
+        let response = reqwest::blocking::get(url)?;
         let body = response.text()?;
         Ok(body)
     }
