@@ -1,6 +1,7 @@
 use crate::app::prompt::Prompt;
 use crate::commands::Actions;
 use crate::layers::business::rss::RssBusinessLayer;
+use crate::layers::presentation::cli::tui;
 use crate::models::errors::AppError;
 use std::collections::HashMap;
 use std::io::ErrorKind;
@@ -44,24 +45,26 @@ impl RssHandler {
             }
             None => {
                 // 記事の取得と表示
-                match self.rss_business.fetch_articles() {
-                    Ok(articles) => {
-                        if articles.is_empty() {
-                            println!("新しい記事はありません。");
-                        } else {
-                            // Display層に委譲
-                            use crate::layers::presentation::cli::display::Display;
-                            let display = Display::new();
-                            display.draw_articles(&articles, options);
-                        }
-                    }
+                let articles = match self.rss_business.fetch_articles() {
+                    Ok(articles) => articles,
                     Err(AppError::FileError(e)) if e.kind() == ErrorKind::NotFound => {
                         eprintln!("設定ファイルが見つかりませんでした。\nnnm init で初期設定を行ってください。");
+                        return Ok(());
                     }
                     Err(e) => {
                         eprintln!("エラーが発生しました。\n{}", e);
+                        return Ok(());
                     }
-                }
+                };
+
+                ratatui::run(|terminal| -> Result<(), AppError> {
+                    loop {
+                        terminal.draw(|frame| tui::render(frame, &articles))?;
+                        if tui::should_quit()? {
+                            return Ok(());
+                        }
+                    }
+                })?;
             }
         }
         Ok(())

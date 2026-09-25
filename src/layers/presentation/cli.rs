@@ -1,3 +1,4 @@
 // CLI presentation layer
-pub mod handlers;
 pub mod display;
+pub mod handlers;
+pub mod tui;
