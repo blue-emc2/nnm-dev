@@ -1,8 +1,9 @@
 use crate::app::prompt::Prompt;
 use crate::commands::Actions;
 use crate::layers::business::rss::RssBusinessLayer;
-use crate::layers::presentation::cli::tui;
+use crate::layers::presentation::cli::tui::{self, KeyAction};
 use crate::models::errors::AppError;
+use ratatui::widgets::ListState;
 use std::collections::HashMap;
 use std::io::ErrorKind;
 
@@ -58,10 +59,14 @@ impl RssHandler {
                 };
 
                 ratatui::run(|terminal| -> Result<(), AppError> {
+                    let mut state = ListState::default().with_selected(Some(0));
                     loop {
-                        terminal.draw(|frame| tui::render(frame, &articles))?;
-                        if tui::should_quit()? {
-                            return Ok(());
+                        terminal.draw(|frame| tui::render(frame, &articles, &mut state))?;
+                        match tui::read_key_action()? {
+                            KeyAction::Quit => return Ok(()),
+                            KeyAction::Up => state.select_previous(),
+                            KeyAction::Down => state.select_next(),
+                            KeyAction::Nothing => (),
                         }
                     }
                 })?;
