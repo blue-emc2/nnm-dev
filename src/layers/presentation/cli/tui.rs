@@ -1,6 +1,9 @@
 use crate::models::article::Article;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
-use ratatui::widgets::{List, ListState};
+use ratatui::layout::Constraint::{Fill, Length};
+use ratatui::layout::Layout;
+use ratatui::style::Stylize;
+use ratatui::widgets::{List, ListState, Paragraph};
 
 pub enum KeyAction {
     Up,
@@ -9,10 +12,19 @@ pub enum KeyAction {
     Nothing,
 }
 
-pub fn render(frame: &mut ratatui::Frame, articles: &[Article], state: &mut ListState) {
+pub fn render(
+    frame: &mut ratatui::Frame,
+    articles: &[Article],
+    status_line: &str,
+    state: &mut ListState,
+) {
     let titles = articles.iter().map(|a| a.title.as_str());
     let list = List::new(titles).highlight_symbol("> ");
-    frame.render_stateful_widget(list, frame.area(), state);
+    let vertical = Layout::vertical([Fill(1), Length(1)]);
+    let [main_area, status_area] = vertical.areas(frame.area());
+    let paragraph = Paragraph::new(status_line).red().on_white().bold();
+    frame.render_stateful_widget(list, main_area, state);
+    frame.render_widget(paragraph, status_area);
 }
 
 pub fn read_key_action() -> std::io::Result<KeyAction> {

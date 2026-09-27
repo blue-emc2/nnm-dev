@@ -60,8 +60,16 @@ impl RssHandler {
 
                 ratatui::run(|terminal| -> Result<(), AppError> {
                     let mut state = ListState::default().with_selected(Some(0));
+                    let message = if articles.is_empty() {
+                        "新着記事はありませんでした".to_string()
+                    } else {
+                        format!("{}件の新着", articles.len())
+                    };
+
                     loop {
-                        terminal.draw(|frame| tui::render(frame, &articles, &mut state))?;
+                        terminal.draw(|frame| {
+                            tui::render(frame, &articles, message.as_str(), &mut state)
+                        })?;
                         match tui::read_key_action()? {
                             KeyAction::Quit => return Ok(()),
                             KeyAction::Up => state.select_previous(),
