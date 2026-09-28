@@ -4,6 +4,7 @@ use ratatui::layout::Constraint::{Fill, Length};
 use ratatui::layout::Layout;
 use ratatui::style::Stylize;
 use ratatui::widgets::{List, ListState, Paragraph};
+use std::time::Duration;
 
 pub enum KeyAction {
     Up,
@@ -28,13 +29,17 @@ pub fn render(
 }
 
 pub fn read_key_action() -> std::io::Result<KeyAction> {
-    match event::read()? {
-        Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
-            KeyCode::Char('q') => Ok(KeyAction::Quit),
-            KeyCode::Char('j') | KeyCode::Down => Ok(KeyAction::Down),
-            KeyCode::Char('k') | KeyCode::Up => Ok(KeyAction::Up),
+    if event::poll(Duration::from_millis(100))? {
+        match event::read()? {
+            Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
+                KeyCode::Char('q') => Ok(KeyAction::Quit),
+                KeyCode::Char('j') | KeyCode::Down => Ok(KeyAction::Down),
+                KeyCode::Char('k') | KeyCode::Up => Ok(KeyAction::Up),
+                _ => Ok(KeyAction::Nothing),
+            },
             _ => Ok(KeyAction::Nothing),
-        },
-        _ => Ok(KeyAction::Nothing),
+        }
+    } else {
+        Ok(KeyAction::Nothing)
     }
 }
