@@ -5,7 +5,8 @@ use crate::layers::presentation::cli::tui::{self, KeyAction};
 use crate::models::errors::AppError;
 use ratatui::widgets::ListState;
 use std::collections::HashMap;
-use std::io::ErrorKind;
+use std::sync::mpsc;
+use std::thread;
 
 pub struct RssHandler {
     rss_business: RssBusinessLayer,
@@ -45,38 +46,45 @@ impl RssHandler {
                 self.delete_prompt(&mut feeds_mut);
             }
             None => {
-                // 記事の取得と表示
-                let articles = match self.rss_business.fetch_articles() {
-                    Ok(articles) => articles,
-                    Err(AppError::FileError(e)) if e.kind() == ErrorKind::NotFound => {
-                        eprintln!("設定ファイルが見つかりませんでした。\nnnm init で初期設定を行ってください。");
-                        return Ok(());
-                    }
-                    Err(e) => {
-                        eprintln!("エラーが発生しました。\n{}", e);
-                        return Ok(());
-                    }
-                };
+                let (tx, rx) = mpsc::channel();
+                let mut articles = vec![];
+                let mut message = "取得中...".to_string();
+                thread::scope(|s| {
+                    s.spawn(move || {
+                        let results = self.rss_business.fetch_articles();
+                        tx.send(results).unwrap();
+                    });
 
-                ratatui::run(|terminal| -> Result<(), AppError> {
-                    let mut state = ListState::default().with_selected(Some(0));
-                    let message = if articles.is_empty() {
-                        "新着記事はありませんでした".to_string()
-                    } else {
-                        format!("{}件の新着", articles.len())
-                    };
+                    ratatui::run(|terminal| -> Result<(), AppError> {
+                        let mut state = ListState::default().with_selected(Some(0));
 
-                    loop {
-                        terminal.draw(|frame| {
-                            tui::render(frame, &articles, message.as_str(), &mut state)
-                        })?;
-                        match tui::read_key_action()? {
-                            KeyAction::Quit => return Ok(()),
-                            KeyAction::Up => state.select_previous(),
-                            KeyAction::Down => state.select_next(),
-                            KeyAction::Nothing => (),
+                        loop {
+                            match rx.try_recv() {
+                                Ok(Ok(received)) => {
+                                    articles = received;
+                                    message = if articles.is_empty() {
+                                        "新着記事はありませんでした".to_string()
+                                    } else {
+                                        format!("{}件の新着", articles.len())
+                                    };
+                                }
+                                Ok(Err(e)) => {
+                                    message = format!("エラーが発生しました。\n{}", e);
+                                }
+                                Err(_) => (),
+                            };
+
+                            terminal.draw(|frame| {
+                                tui::render(frame, &articles, message.as_str(), &mut state)
+                            })?;
+                            match tui::read_key_action()? {
+                                KeyAction::Quit => return Ok(()),
+                                KeyAction::Up => state.select_previous(),
+                                KeyAction::Down => state.select_next(),
+                                KeyAction::Nothing => (),
+                            }
                         }
-                    }
+                    })
                 })?;
             }
         }
