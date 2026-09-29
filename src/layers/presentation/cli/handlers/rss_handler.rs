@@ -5,6 +5,7 @@ use crate::layers::presentation::cli::tui::{self, KeyAction};
 use crate::models::errors::AppError;
 use ratatui::widgets::ListState;
 use std::collections::HashMap;
+use std::io::ErrorKind;
 use std::sync::mpsc;
 use std::thread;
 
@@ -68,8 +69,13 @@ impl RssHandler {
                                         format!("{}件の新着", articles.len())
                                     };
                                 }
+                                Ok(Err(AppError::FileError(e)))
+                                    if e.kind() == ErrorKind::NotFound =>
+                                {
+                                    message = "設定ファイルが見つかりませんでした。nnm init で初期設定を行ってください。".to_string();
+                                }
                                 Ok(Err(e)) => {
-                                    message = format!("エラーが発生しました。\n{}", e);
+                                    message = format!("エラーが発生しました。{}", e);
                                 }
                                 Err(_) => (),
                             };
