@@ -2,8 +2,8 @@
 use crate::layers::data::repositories::config_repository::ConfigRepository;
 use crate::layers::data::repositories::history_repository::HistoryRepository;
 use crate::models::config::{Config, ConfigMessage};
-use crate::models::errors::AppError;
 use crate::app::file::File;
+use crate::models::errors::AppError;
 
 pub struct ConfigBusinessLayer {
     config_repo: ConfigRepository,
@@ -36,5 +36,9 @@ impl ConfigBusinessLayer {
         Ok(ConfigMessage::Success(
             config_file_path.into_os_string().into_string().unwrap(),
         ))
+    }
+
+    pub fn load(&self) -> Result<Config, AppError> {
+        self.config_repo.load()
     }
 }

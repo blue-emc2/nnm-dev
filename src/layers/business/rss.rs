@@ -3,6 +3,7 @@ use crate::app::parser::Parser;
 use crate::layers::data::repositories::config_repository::ConfigRepository;
 use crate::layers::data::repositories::history_repository::HistoryRepository;
 use crate::models::article::Article;
+use crate::models::config::Config;
 use crate::models::errors::AppError;
 use std::thread;
 
@@ -56,8 +57,7 @@ impl RssBusinessLayer {
     }
 
     /// RSSフィードを取得して記事を返す
-    pub fn fetch_articles(&self) -> Result<Vec<Article>, AppError> {
-        let config = self.config_repo.load()?;
+    pub fn fetch_articles(&self, config: &Config) -> Result<Vec<Article>, AppError> {
         let links = config.links().clone();
         let chunk_size = config.chunk_size();
 

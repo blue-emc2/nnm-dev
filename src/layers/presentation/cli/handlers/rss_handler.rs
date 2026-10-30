@@ -1,5 +1,6 @@
 use crate::app::prompt::Prompt;
 use crate::commands::Actions;
+use crate::layers::business::config::ConfigBusinessLayer;
 use crate::layers::business::rss::RssBusinessLayer;
 use crate::layers::presentation::cli::tui::{self, KeyAction};
 use crate::models::errors::AppError;
@@ -11,6 +12,7 @@ use std::thread;
 
 pub struct RssHandler {
     rss_business: RssBusinessLayer,
+    config_business: ConfigBusinessLayer,
 }
 
 impl Prompt for RssHandler {
@@ -26,6 +28,7 @@ impl RssHandler {
     pub fn new() -> Self {
         Self {
             rss_business: RssBusinessLayer::new(),
+            config_business: ConfigBusinessLayer::new(),
         }
     }
 
@@ -50,9 +53,20 @@ impl RssHandler {
                 let (tx, rx) = mpsc::channel();
                 let mut articles = vec![];
                 let mut message = "取得中...".to_string();
+                let config = match self.config_business.load() {
+                    Ok(config) => config,
+                    Err(AppError::FileError(e)) if e.kind() == ErrorKind::NotFound => {
+                        eprintln!("設定ファイルが見つかりませんでした。nnm init で初期設定を行ってください。");
+                        return Ok(());
+                    }
+                    Err(e) => {
+                        return Err(e);
+                    }
+                };
+
                 thread::scope(|s| {
                     s.spawn(move || {
-                        let results = self.rss_business.fetch_articles();
+                        let results = self.rss_business.fetch_articles(&config);
                         tx.send(results).unwrap();
                     });
 
@@ -68,11 +82,6 @@ impl RssHandler {
                                     } else {
                                         format!("{}件の新着", articles.len())
                                     };
-                                }
-                                Ok(Err(AppError::FileError(e)))
-                                    if e.kind() == ErrorKind::NotFound =>
-                                {
-                                    message = "設定ファイルが見つかりませんでした。nnm init で初期設定を行ってください。".to_string();
                                 }
                                 Ok(Err(e)) => {
                                     message = format!("エラーが発生しました。{}", e);
