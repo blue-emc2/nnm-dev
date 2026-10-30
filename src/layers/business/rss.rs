@@ -63,18 +63,7 @@ impl RssBusinessLayer {
 
         let mut handles = vec![];
         for link in links {
-            let handle = thread::spawn(move || {
-                #[cfg(debug_assertions)]
-                {
-                    println!("- start fetch task {} : {:?}", link, thread::current().id());
-                }
-                let body = Self::fetch_rss(&link);
-                #[cfg(debug_assertions)]
-                {
-                    println!("- end fetch task {} : {:?}", link, thread::current().id());
-                }
-                body
-            });
+            let handle = thread::spawn(move || Self::fetch_rss(&link));
             handles.push(handle);
         }
 
@@ -150,10 +139,10 @@ impl RssBusinessLayer {
     }
 
     fn save_history(&self, entities: &[Article]) -> Result<(), AppError> {
-        let mut history = self.history_repo.load().unwrap_or_else(|_| {
-            eprintln!("履歴ファイルが見つかりませんでした。\nhistory.jsonを再作成します。");
-            crate::models::history::History::new()
-        });
+        let mut history = self
+            .history_repo
+            .load()
+            .unwrap_or_else(|_| crate::models::history::History::new());
 
         for entity in entities {
             let article = Article {
