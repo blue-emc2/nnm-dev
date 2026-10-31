@@ -13,7 +13,8 @@ pub struct History {
 
 impl File for History {
     fn file_path(&self) -> PathBuf {
-        app_config_dir().join("history.json")
+        let file_name = Local::now().format("%Y%m%d-articles.json").to_string();
+        app_config_dir().join("history").join(file_name)
     }
 }
 
