@@ -1,21 +1,11 @@
-use crate::app::file::app_config_dir;
-use crate::app::file::File;
 use crate::models::article::Article;
 use chrono::Local;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct History {
     last_fetched_date: String,
     entity: Vec<Article>,
-}
-
-impl File for History {
-    fn file_path(&self) -> PathBuf {
-        let file_name = Local::now().format("%Y%m%d-articles.json").to_string();
-        app_config_dir().join("history").join(file_name)
-    }
 }
 
 impl History {
@@ -24,15 +14,6 @@ impl History {
             last_fetched_date: "".to_string(),
             entity: Vec::new(),
         }
-    }
-
-    pub fn save(&self) -> Result<(), std::io::Error> {
-        self.save_to_file(self)?;
-        Ok(())
-    }
-
-    pub fn load() -> Result<Self, std::io::Error> {
-        History::new().load_from_file()
     }
 
     pub fn update_last_fetched_date(&mut self) {

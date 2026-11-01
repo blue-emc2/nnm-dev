@@ -1,9 +1,11 @@
 use crate::app::prompt::Prompt;
 use crate::commands::Actions;
 use crate::layers::business::config::ConfigBusinessLayer;
+use crate::layers::business::history::HistoryBusinessLayer;
 use crate::layers::business::rss::RssBusinessLayer;
 use crate::layers::presentation::cli::tui::{self, KeyAction};
 use crate::models::errors::AppError;
+use crate::models::history;
 use ratatui::widgets::ListState;
 use std::collections::HashMap;
 use std::io::ErrorKind;
@@ -13,6 +15,7 @@ use std::thread;
 pub struct RssHandler {
     rss_business: RssBusinessLayer,
     config_business: ConfigBusinessLayer,
+    history_business: HistoryBusinessLayer,
 }
 
 impl Prompt for RssHandler {
@@ -29,6 +32,7 @@ impl RssHandler {
         Self {
             rss_business: RssBusinessLayer::new(),
             config_business: ConfigBusinessLayer::new(),
+            history_business: HistoryBusinessLayer::new()
         }
     }
 
@@ -59,6 +63,13 @@ impl RssHandler {
                         eprintln!("設定ファイルが見つかりませんでした。nnm init で初期設定を行ってください。");
                         return Ok(());
                     }
+                    Err(e) => {
+                        return Err(e);
+                    }
+                };
+
+                match self.history_business.find_or_create_history() {
+                    Ok(history) => history,
                     Err(e) => {
                         return Err(e);
                     }

@@ -13,6 +13,9 @@ pub enum AppError {
 
     #[error("パースエラー: {0}")]
     ParseError(String),
+
+    #[error("JSON変換エラー: {0}")]
+    JsonError(#[from] serde_json::Error),
 }
 
 // app::error::AppError からの変換

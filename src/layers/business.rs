@@ -2,3 +2,4 @@
 pub mod rss;
 pub mod bookmark;
 pub mod config;
+pub mod history;
